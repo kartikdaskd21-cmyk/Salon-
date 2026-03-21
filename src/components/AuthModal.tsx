@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Smartphone, Mail } from 'lucide-react';
 import { auth, googleProvider } from '../lib/firebase';
-import { signInWithPopup } from 'firebase/auth';
+import { signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { playRoyalSound } from '../utils/sound';
 
 export default function AuthModal() {
@@ -12,6 +12,17 @@ export default function AuthModal() {
   useEffect(() => {
     const handleOpen = () => setIsOpen(true);
     window.addEventListener('open-auth-modal', handleOpen);
+
+    // Handle redirect result
+    getRedirectResult(auth).then((result) => {
+      if (result) {
+        setIsOpen(false);
+      }
+    }).catch((error) => {
+      console.error('Error with redirect sign-in', error);
+      setErrorMsg(error.message);
+    });
+
     return () => window.removeEventListener('open-auth-modal', handleOpen);
   }, []);
 
@@ -19,8 +30,18 @@ export default function AuthModal() {
     playRoyalSound();
     try {
       setErrorMsg('');
-      await signInWithPopup(auth, googleProvider);
-      setIsOpen(false);
+      // Try popup first
+      try {
+        await signInWithPopup(auth, googleProvider);
+        setIsOpen(false);
+      } catch (popupError: any) {
+        // If popup is blocked or fails, try redirect
+        if (popupError.code === 'auth/popup-blocked') {
+           await signInWithRedirect(auth, googleProvider);
+        } else {
+           throw popupError;
+        }
+      }
     } catch (error: any) {
       console.error('Error signing in with Google', error);
       if (error.code === 'auth/unauthorized-domain') {

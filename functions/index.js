@@ -9,9 +9,10 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY || 're_placeholder_key';
 const sendEmail = async (to, subject, text) => {
   console.log(`[Resend API] Sending to ${to}: ${subject}`);
   try {
-    await axios.post('https://api.resend.com/emails', {
-      from: 'RedStone <kartikdas.kd21@gmail.com>',
-      to: [to],
+    const response = await axios.post('https://api.resend.com/emails', {
+      from: 'RedStone <onboarding@resend.dev>', // Resend might require verified domain
+      to: [to, 'kartikdas.kd21@gmail.com'], // Also notify admin
+      reply_to: 'kartikdas.kd21@gmail.com',
       subject: subject,
       text: text,
     }, {

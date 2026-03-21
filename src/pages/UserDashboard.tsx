@@ -22,6 +22,8 @@ export default function UserDashboard() {
   const { user, loading } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [reviewMessage, setReviewMessage] = useState<string | null>(null);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
 
   const handleCancel = async (bookingId: string) => {
     if (!window.confirm('Are you sure you want to cancel this booking?')) return;
@@ -33,7 +35,13 @@ export default function UserDashboard() {
   };
 
   const handleReview = (bookingId: string) => {
-    setReviewMessage(`Thank you for your review for booking ${bookingId.slice(0, 5)}!`);
+    setSelectedBookingId(bookingId);
+    setIsReviewModalOpen(true);
+  };
+
+  const submitReview = () => {
+    setReviewMessage(`Thank you for your review for booking ${selectedBookingId?.slice(0, 5)}!`);
+    setIsReviewModalOpen(false);
     setTimeout(() => setReviewMessage(null), 5000);
   };
 
@@ -90,6 +98,46 @@ export default function UserDashboard() {
           <p className="text-[#1a1a1a]/60 font-sans text-sm tracking-wide">{user.email}</p>
         </div>
       </div>
+
+      <AnimatePresence>
+        {isReviewModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsReviewModalOpen(false)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative w-full max-w-md bg-white border border-black/5 p-10 overflow-hidden shadow-2xl"
+            >
+              <h2 className="text-xl font-sans font-light tracking-widest uppercase mb-6 text-[#1a1a1a]">Rate Your Experience</h2>
+              <div className="flex justify-center gap-4 mb-8">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button key={star} className="text-[#C5A059] hover:scale-110 transition-transform">
+                     <Scissors className="w-8 h-8" />
+                  </button>
+                ))}
+              </div>
+              <textarea
+                placeholder="Share your thoughts..."
+                className="w-full bg-[#f5f2ed] border border-black/5 p-4 text-sm font-sans mb-6 focus:outline-none focus:border-[#C5A059]/30"
+                rows={4}
+              />
+              <button
+                onClick={submitReview}
+                className="w-full py-4 bg-[#1a1a1a] text-white font-sans text-xs font-semibold tracking-[0.2em] uppercase hover:bg-black transition-colors"
+              >
+                Submit Review
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {reviewMessage && (
         <motion.div
@@ -160,9 +208,9 @@ export default function UserDashboard() {
                     {booking.status === 'completed' && (
                       <button
                         onClick={() => handleReview(booking.id)}
-                        className="px-4 py-2 bg-[#1a1a1a] text-white text-[10px] font-sans uppercase tracking-[0.2em] hover:bg-black transition-colors"
+                        className="px-6 py-2 bg-[#C5A059] text-white text-[10px] font-sans uppercase tracking-[0.2em] hover:bg-[#d4b26a] transition-colors"
                       >
-                        Review
+                        Post Review
                       </button>
                     )}
                   </div>
