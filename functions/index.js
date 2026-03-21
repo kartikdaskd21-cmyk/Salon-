@@ -1,12 +1,29 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const axios = require('axios');
 
 admin.initializeApp();
 
-// Placeholder for SendGrid / Nodemailer
+const RESEND_API_KEY = process.env.RESEND_API_KEY || 're_placeholder_key';
+
 const sendEmail = async (to, subject, text) => {
-  console.log(`[Email Mock] Sending to ${to}: ${subject}`);
-  // e.g., sgMail.send({ to, from: 'hello@neoncuts.com', subject, text })
+  console.log(`[Resend API] Sending to ${to}: ${subject}`);
+  try {
+    await axios.post('https://api.resend.com/emails', {
+      from: 'RedStone <kartikdas.kd21@gmail.com>',
+      to: [to],
+      subject: subject,
+      text: text,
+    }, {
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      }
+    });
+    console.log(`Email sent successfully to ${to}`);
+  } catch (error) {
+    console.error('Error sending email via Resend:', error.response ? error.response.data : error.message);
+  }
 };
 
 // Placeholder for Twilio / WhatsApp Cloud API
@@ -15,36 +32,47 @@ const sendWhatsApp = async (to, message) => {
   // e.g., twilioClient.messages.create({ body: message, from: 'whatsapp:+14155238886', to: `whatsapp:${to}` })
 };
 
-exports.onBookingConfirmed = functions.firestore
+exports.onBookingStatusUpdate = functions.firestore
   .document('bookings/{bookingId}')
   .onUpdate(async (change, context) => {
     const newValue = change.after.data();
     const previousValue = change.before.data();
 
-    // Only trigger when status changes to 'confirmed'
-    if (newValue.status === 'confirmed' && previousValue.status !== 'confirmed') {
-      const { customerName, customerPhone, date, timeSlot, userId } = newValue;
+    // Only trigger when status changes
+    if (newValue.status !== previousValue.status) {
+      const { customerName, customerPhone, date, timeSlot, userId, status } = newValue;
 
-      try {
-        // Fetch user email
-        const userRecord = await admin.auth().getUser(userId);
-        const email = userRecord.email;
+      if (status === 'confirmed' || status === 'cancelled') {
+        try {
+          // Fetch user email
+          const userRecord = await admin.auth().getUser(userId);
+          const email = userRecord.email;
 
-        const message = `Hey ${customerName}! Your Neon Cuts appointment is confirmed for ${date} at ${timeSlot}. Get ready for a fresh look!`;
+          let subject = '';
+          let message = '';
 
-        // Send Email
-        if (email) {
-          await sendEmail(email, 'Booking Confirmed - Neon Cuts', message);
+          if (status === 'confirmed') {
+            subject = 'Booking Confirmed - RedStone Barbershop';
+            message = `Hey ${customerName}! Your RedStone appointment is confirmed for ${date} at ${timeSlot}. Get ready for a fresh look!`;
+          } else if (status === 'cancelled') {
+            subject = 'Booking Cancelled - RedStone Barbershop';
+            message = `Hello ${customerName}, your appointment for ${date} at ${timeSlot} has been cancelled. We hope to see you again soon!`;
+          }
+
+          // Send Email
+          if (email) {
+            await sendEmail(email, subject, message);
+          }
+
+          // Send WhatsApp (if placeholder implemented)
+          if (customerPhone && status === 'confirmed') {
+            await sendWhatsApp(customerPhone, message);
+          }
+
+          console.log(`Notifications sent for booking ${context.params.bookingId} with status ${status}`);
+        } catch (error) {
+          console.error('Error sending notifications:', error);
         }
-
-        // Send WhatsApp
-        if (customerPhone) {
-          await sendWhatsApp(customerPhone, message);
-        }
-
-        console.log(`Notifications sent for booking ${context.params.bookingId}`);
-      } catch (error) {
-        console.error('Error sending notifications:', error);
       }
     }
   });

@@ -79,7 +79,7 @@ export default function BookingModal({ isOpen, onClose }: { isOpen: boolean; onC
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-black/5">
               <h2 className="text-sm font-sans font-semibold tracking-[0.2em] uppercase text-[#1a1a1a]">
-                {step === 1 && 'Schedule Appointment'}
+                {step === 1 && 'Checkout'}
                 {step === 2 && 'Checkout Summary'}
                 {step === 3 && 'Booking Confirmed'}
               </h2>
@@ -235,7 +235,7 @@ export default function BookingModal({ isOpen, onClose }: { isOpen: boolean; onC
                     disabled={isSubmitting}
                     className="px-8 py-3 bg-[#C5A059] text-white font-sans text-xs font-semibold tracking-[0.2em] uppercase hover:bg-[#d4b26a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
                   >
-                    {isSubmitting ? 'Confirming...' : 'Confirm Appointment'}
+                    {isSubmitting ? 'Confirming...' : 'Complete Checkout'}
                   </button>
                 )}
               </div>

@@ -25,6 +25,10 @@ export default function AuthModal() {
       console.error('Error signing in with Google', error);
       if (error.code === 'auth/unauthorized-domain') {
         setErrorMsg(`Domain not authorized. Please add "${window.location.hostname}" to your Firebase Auth Authorized Domains in the Firebase Console.`);
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        setErrorMsg('The sign-in popup was closed before completion. Please try again.');
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        setErrorMsg('The sign-in request was cancelled. Please try again.');
       } else {
         setErrorMsg(error.message || 'Failed to sign in.');
       }
