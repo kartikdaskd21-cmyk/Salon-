@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { useAuth } from '../lib/AuthContext';
 import { Navigate } from 'react-router-dom';
@@ -21,6 +21,21 @@ interface Booking {
 export default function UserDashboard() {
   const { user, loading } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [reviewMessage, setReviewMessage] = useState<string | null>(null);
+
+  const handleCancel = async (bookingId: string) => {
+    if (!window.confirm('Are you sure you want to cancel this booking?')) return;
+    try {
+      await updateDoc(doc(db, 'bookings', bookingId), { status: 'cancelled' });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `bookings/${bookingId}`);
+    }
+  };
+
+  const handleReview = (bookingId: string) => {
+    setReviewMessage(`Thank you for your review for booking ${bookingId.slice(0, 5)}!`);
+    setTimeout(() => setReviewMessage(null), 5000);
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -76,6 +91,16 @@ export default function UserDashboard() {
         </div>
       </div>
 
+      {reviewMessage && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8 p-4 bg-emerald-50 border border-emerald-100 text-emerald-600 text-sm font-sans text-center"
+        >
+          {reviewMessage}
+        </motion.div>
+      )}
+
       <div className="space-y-8">
         <h2 className="text-sm font-sans font-semibold tracking-[0.2em] uppercase text-[#C5A059] border-b border-[#1a1a1a]/10 pb-4 flex items-center gap-3">
           <Calendar className="w-4 h-4" strokeWidth={1.5} /> Booking History
@@ -115,12 +140,32 @@ export default function UserDashboard() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
-                  {booking.serviceIds.map((id, index) => (
-                    <span key={index} className="px-4 py-2 bg-[#1a1a1a]/5 text-[10px] text-[#1a1a1a]/60 border border-[#1a1a1a]/10 font-sans uppercase tracking-[0.2em]">
-                      Service #{index + 1}
-                    </span>
-                  ))}
+                <div className="flex flex-col items-end gap-4">
+                  <div className="flex flex-wrap gap-2 justify-end">
+                    {booking.serviceIds.map((id, index) => (
+                      <span key={index} className="px-4 py-2 bg-[#1a1a1a]/5 text-[10px] text-[#1a1a1a]/60 border border-[#1a1a1a]/10 font-sans uppercase tracking-[0.2em]">
+                        Service #{index + 1}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex gap-4">
+                    {(booking.status === 'pending' || booking.status === 'confirmed') && (
+                      <button
+                        onClick={() => handleCancel(booking.id)}
+                        className="px-4 py-2 border border-red-200 text-red-600 text-[10px] font-sans uppercase tracking-[0.2em] hover:bg-red-50 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                    {booking.status === 'completed' && (
+                      <button
+                        onClick={() => handleReview(booking.id)}
+                        className="px-4 py-2 bg-[#1a1a1a] text-white text-[10px] font-sans uppercase tracking-[0.2em] hover:bg-black transition-colors"
+                      >
+                        Review
+                      </button>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             ))}

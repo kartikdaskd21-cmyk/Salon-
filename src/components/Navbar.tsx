@@ -35,7 +35,13 @@ export default function Navbar() {
           </Link>
 
           <div className="flex items-center gap-8">
-            <div className="relative group cursor-pointer">
+            <button
+              onClick={() => {
+                playRoyalSound();
+                window.dispatchEvent(new CustomEvent('open-booking-modal'));
+              }}
+              className="relative group cursor-pointer"
+            >
               <ShoppingBag className="w-5 h-5 text-[#1a1a1a]/70 group-hover:text-[#C5A059] transition-colors duration-300" strokeWidth={1.5} />
               <AnimatePresence>
                 {cart.length > 0 && (
@@ -49,7 +55,7 @@ export default function Navbar() {
                   </motion.div>
                 )}
               </AnimatePresence>
-            </div>
+            </button>
 
             {user ? (
               <div className="flex items-center gap-6">

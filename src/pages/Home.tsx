@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import HeroMap from '../components/HeroMap';
 import ServiceCatalog from '../components/ServiceCatalog';
 import BookingModal from '../components/BookingModal';
@@ -13,6 +13,12 @@ export default function Home() {
   const { cart, totalAmount } = useCart();
   const { user } = useAuth();
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+
+  useEffect(() => {
+    const handleOpen = () => setIsBookingModalOpen(true);
+    window.addEventListener('open-booking-modal', handleOpen);
+    return () => window.removeEventListener('open-booking-modal', handleOpen);
+  }, []);
 
   const handleBookNow = () => {
     playRoyalSound();
@@ -49,7 +55,7 @@ export default function Home() {
             >
               <span className="flex items-center gap-3">
                 <CalendarCheck className="w-4 h-4" strokeWidth={1.5} />
-                Book {cart.length} Service{cart.length > 1 ? 's' : ''}
+                Checkout {cart.length} Service{cart.length > 1 ? 's' : ''}
               </span>
               <span className="font-sans font-medium text-sm tracking-widest">
                 ₹{totalAmount}
