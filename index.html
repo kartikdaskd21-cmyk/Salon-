@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Google AI Studio App</title>
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+      const firebaseConfig = {
+        apiKey: "AIzaSyDV3tIiJAciSBOELrF6cGgHEN4mR1tjJOs",
+        authDomain: "studio-7146765872-ac9d4.firebaseapp.com",
+        projectId: "studio-7146765872-ac9d4",
+        storageBucket: "studio-7146765872-ac9d4.firebasestorage.app",
+        messagingSenderId: "69495190192",
+        appId: "1:69495190192:web:d61c3aac7c9d74d5144175"
+      };
+      const app = initializeApp(firebaseConfig);
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

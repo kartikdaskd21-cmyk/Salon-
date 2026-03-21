@@ -1,0 +1,7 @@
+{
+  "name": "Funky Salon Booking",
+  "description": "A modern, aesthetic salon booking app with animations and maps.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
