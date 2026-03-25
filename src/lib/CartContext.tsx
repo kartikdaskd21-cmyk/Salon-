@@ -5,6 +5,7 @@ export interface Service {
   name: string;
   description?: string;
   price: number;
+  category?: string;
   durationMinutes: number;
   imageUrl?: string;
   isActive: boolean;

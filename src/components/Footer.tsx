@@ -16,11 +16,11 @@ export default function Footer() {
           <ul className="space-y-4 text-[#f5f2ed]/60 font-sans text-sm tracking-wide">
             <li className="flex items-start gap-3">
               <MapPin className="w-5 h-5 text-[#C5A059] shrink-0" strokeWidth={1.5} />
-              <span>123 Royal Crown Avenue,<br />Prestige District, London, UK</span>
+              <span>55-56, Street No. 1, U Block,<br />DLF Phase 3, Sector 24,<br />Gurugram, Haryana 122022</span>
             </li>
             <li className="flex items-center gap-3">
               <Phone className="w-5 h-5 text-[#C5A059] shrink-0" strokeWidth={1.5} />
-              <span>+44 20 7123 4567</span>
+              <span>+91 9910167013</span>
             </li>
             <li className="flex items-center gap-3">
               <Mail className="w-5 h-5 text-[#C5A059] shrink-0" strokeWidth={1.5} />

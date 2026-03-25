@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, X, Send, Loader2 } from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
 import ReactMarkdown from 'react-markdown';
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+import { GoogleGenAI } from "@google/genai";
+import { db } from '../lib/firebase';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { Service } from '../lib/CartContext';
 
 interface Message {
   id: string;
@@ -19,20 +20,21 @@ export default function Chatbot() {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [availableServices, setAvailableServices] = useState<Service[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Initialize chat session
-  const chatRef = useRef<any>(null);
-
   useEffect(() => {
-    if (!chatRef.current) {
-      chatRef.current = ai.chats.create({
-        model: 'gemini-3.1-pro-preview',
-        config: {
-          systemInstruction: 'You are a helpful assistant for RedStone, a luxury barbershop. You help customers with questions about services, pricing, and general inquiries. Keep your answers concise, professional, and elegant.',
-        }
-      });
-    }
+    const fetchServices = async () => {
+      try {
+        const q = query(collection(db, 'services'), where('isActive', '==', true));
+        const snapshot = await getDocs(q);
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Service));
+        setAvailableServices(data);
+      } catch (error) {
+        console.error("Error fetching services for chatbot:", error);
+      }
+    };
+    fetchServices();
   }, []);
 
   const scrollToBottom = () => {
@@ -53,11 +55,52 @@ export default function Chatbot() {
     setIsLoading(true);
 
     try {
-      const response = await chatRef.current.sendMessage({ message: userMessage });
-      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: response.text }]);
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+      const model = "gemini-3-flash-preview";
+      
+      const salonContext = `
+        You are the AI assistant for RedStone Salon, a luxury salon located in New Delhi.
+        
+        Our Services:
+        ${availableServices.map(s => `- ${s.name}: ₹${s.price} (${s.durationMinutes} mins)`).join('\n')}
+        
+        Location: 123, Luxury Lane, South Extension, New Delhi - 110049
+        Contact: +91 9910167013
+        Email: bookings@redstonesalon.com
+        
+        Guidelines:
+        - Be professional, welcoming, and helpful.
+        - Encourage users to book appointments through the website.
+        - If asked about services not listed, politely inform them we don't offer it yet but can suggest alternatives.
+        - Keep responses concise and formatted with markdown.
+      `;
+
+      const response = await ai.models.generateContent({
+        model,
+        contents: [
+          { role: 'user', parts: [{ text: salonContext }] },
+          ...messages.map(m => ({
+            role: m.role,
+            parts: [{ text: m.text }]
+          })),
+          { role: 'user', parts: [{ text: userMessage }] }
+        ],
+      });
+
+      const aiText = response.text || "I'm sorry, I couldn't process that request. Please try again or contact us directly.";
+      
+      setMessages(prev => [...prev, { 
+        id: Date.now().toString(), 
+        role: 'model', 
+        text: aiText
+      }]);
     } catch (error) {
-      console.error('Chat error:', error);
-      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: 'I apologize, but I encountered an error. Please try again later.' }]);
+      console.error('Chatbot Error:', error);
+      setMessages(prev => [...prev, { 
+        id: Date.now().toString(), 
+        role: 'model', 
+        text: "I'm having trouble connecting right now. Please call us at +91 9910167013 for immediate assistance." 
+      }]);
     } finally {
       setIsLoading(false);
     }
@@ -95,7 +138,7 @@ export default function Chatbot() {
                 </div>
                 <div>
                   <h3 className="text-[#1a1a1a] font-serif text-sm tracking-wider font-semibold">RedStone Assistant</h3>
-                  <p className="text-[#1a1a1a]/50 text-xs font-sans">AI Powered</p>
+                  <p className="text-[#1a1a1a]/50 text-xs font-sans">Support</p>
                 </div>
               </div>
               <button

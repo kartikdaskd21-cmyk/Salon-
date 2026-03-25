@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Smartphone, Mail } from 'lucide-react';
+import { X, Mail } from 'lucide-react';
 import { auth, googleProvider } from '../lib/firebase';
 import { signInWithPopup } from 'firebase/auth';
-import { playRoyalSound } from '../utils/sound';
+import { playSuccessSound, playCloseSound } from '../utils/sound';
 
 export default function AuthModal() {
   const [isOpen, setIsOpen] = useState(false);
@@ -16,7 +16,7 @@ export default function AuthModal() {
   }, []);
 
   const handleGoogleSignIn = async () => {
-    playRoyalSound();
+    playSuccessSound();
     try {
       setErrorMsg('');
       await signInWithPopup(auth, googleProvider);
@@ -25,10 +25,6 @@ export default function AuthModal() {
       console.error('Error signing in with Google', error);
       if (error.code === 'auth/unauthorized-domain') {
         setErrorMsg(`Domain not authorized. Please add "${window.location.hostname}" to your Firebase Auth Authorized Domains in the Firebase Console.`);
-      } else if (error.code === 'auth/popup-closed-by-user') {
-        setErrorMsg('The sign-in popup was closed before completion. Please try again.');
-      } else if (error.code === 'auth/cancelled-popup-request') {
-        setErrorMsg('The sign-in request was cancelled. Please try again.');
       } else {
         setErrorMsg(error.message || 'Failed to sign in.');
       }
@@ -53,12 +49,13 @@ export default function AuthModal() {
             exit={{ scale: 0.95, opacity: 0, y: 20 }}
             className="relative w-full max-w-md bg-white border border-black/5 p-10 overflow-hidden shadow-2xl"
           >
-            <button
+            <motion.button
+              whileTap={{ scale: 0.95 }}
               onClick={() => setIsOpen(false)}
               className="absolute top-6 right-6 p-2 text-[#1a1a1a]/50 hover:text-[#1a1a1a] transition-colors"
             >
               <X className="w-5 h-5" strokeWidth={1.5} />
-            </button>
+            </motion.button>
 
             <div className="text-center mb-10">
               <h2 className="text-2xl font-sans font-light tracking-widest uppercase mb-3 text-[#1a1a1a]">Welcome Back</h2>
@@ -72,8 +69,12 @@ export default function AuthModal() {
             )}
 
             <div className="space-y-4">
-              <button
-                onClick={handleGoogleSignIn}
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  playSuccessSound();
+                  handleGoogleSignIn();
+                }}
                 className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-[#1a1a1a] text-white font-sans text-xs font-semibold tracking-[0.2em] uppercase hover:bg-black transition-colors"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -95,21 +96,7 @@ export default function AuthModal() {
                   />
                 </svg>
                 Continue with Google
-              </button>
-
-              <div className="relative flex items-center py-4">
-                <div className="flex-grow border-t border-black/5"></div>
-                <span className="flex-shrink-0 mx-4 text-[#1a1a1a]/30 text-xs font-sans tracking-widest uppercase">or</span>
-                <div className="flex-grow border-t border-black/5"></div>
-              </div>
-
-              <button
-                onClick={() => playRoyalSound()}
-                className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-transparent text-[#1a1a1a] font-sans text-xs font-semibold tracking-[0.2em] uppercase hover:bg-black/5 transition-colors border border-black/10"
-              >
-                <Smartphone className="w-4 h-4" strokeWidth={1.5} />
-                Continue with Phone
-              </button>
+              </motion.button>
             </div>
           </motion.div>
         </div>

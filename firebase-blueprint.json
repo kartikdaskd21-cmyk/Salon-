@@ -24,6 +24,7 @@
         "name": { "type": "string" },
         "description": { "type": "string" },
         "price": { "type": "number" },
+        "category": { "type": "string" },
         "durationMinutes": { "type": "number" },
         "imageUrl": { "type": "string" },
         "isActive": { "type": "boolean" }
@@ -47,6 +48,33 @@
         "createdAt": { "type": "timestamp" }
       },
       "required": ["id", "userId", "customerName", "serviceIds", "totalAmount", "date", "timeSlot", "status", "createdAt"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "A customer review for services.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "serviceIds": { "type": "array", "items": { "type": "string" } },
+        "serviceNames": { "type": "array", "items": { "type": "string" } },
+        "rating": { "type": "number" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "timestamp" }
+      },
+      "required": ["id", "userId", "customerName", "serviceIds", "serviceNames", "rating", "createdAt"]
+    },
+    "BusySlot": {
+      "title": "BusySlot",
+      "description": "A record of a booked time slot for a specific date.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Format: YYYY-MM-DD_HH:MM_AM/PM" },
+        "date": { "type": "string" },
+        "timeSlot": { "type": "string" }
+      },
+      "required": ["id", "date", "timeSlot"]
     }
   },
   "firestore": {
@@ -61,6 +89,14 @@
     "/bookings/{bookingId}": {
       "schema": { "$ref": "#/entities/Booking" },
       "description": "Customer bookings"
+    },
+    "/reviews/{reviewId}": {
+      "schema": { "$ref": "#/entities/Review" },
+      "description": "Customer reviews"
+    },
+    "/busy_slots/{slotId}": {
+      "schema": { "$ref": "#/entities/BusySlot" },
+      "description": "Booked time slots for availability checking"
     }
   }
 }

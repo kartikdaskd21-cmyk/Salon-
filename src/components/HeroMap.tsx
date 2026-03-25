@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { useScroll, useTransform, motion } from 'framer-motion';
+import { useScroll, useTransform, motion, useSpring } from 'framer-motion';
 
 export default function HeroMap() {
   const [element, setElement] = useState<HTMLDivElement | null>(null);
@@ -9,22 +9,24 @@ export default function HeroMap() {
     offset: ["start start", "end end"]
   });
 
+  const smoothProgress = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
+
   // Apple-like cinematic scroll animations
   // Sequence 1: Main Title
-  const text1Opacity = useTransform(scrollYProgress, [0, 0.15, 0.25], [1, 1, 0]);
-  const text1Scale = useTransform(scrollYProgress, [0, 0.25], [1, 1.05]);
-  const text1Y = useTransform(scrollYProgress, [0, 0.25], [0, -100]);
+  const text1Opacity = useTransform(smoothProgress, [0, 0.15, 0.25], [1, 1, 0]);
+  const text1Scale = useTransform(smoothProgress, [0, 0.25], [1, 1.05]);
+  const text1Y = useTransform(smoothProgress, [0, 0.25], [0, -100]);
 
   // Sequence 2: Subtitle
-  const text2Opacity = useTransform(scrollYProgress, [0.2, 0.35, 0.45], [0, 1, 0]);
-  const text2Scale = useTransform(scrollYProgress, [0.2, 0.45], [0.95, 1.05]);
-  const text2Y = useTransform(scrollYProgress, [0.2, 0.45], [100, -100]);
+  const text2Opacity = useTransform(smoothProgress, [0.2, 0.35, 0.45], [0, 1, 0]);
+  const text2Scale = useTransform(smoothProgress, [0.2, 0.45], [0.95, 1.05]);
+  const text2Y = useTransform(smoothProgress, [0.2, 0.45], [100, -100]);
 
   // Sequence 3: Map Reveal (scales up from a card to full width)
-  const mapOpacity = useTransform(scrollYProgress, [0.4, 0.6], [0, 1]);
-  const mapScale = useTransform(scrollYProgress, [0.4, 0.7], [0.85, 1]);
-  const mapWidth = useTransform(scrollYProgress, [0.5, 0.8], ["60%", "100%"]);
-  const mapBorderRadius = useTransform(scrollYProgress, [0.5, 0.8], ["24px", "0px"]);
+  const mapOpacity = useTransform(smoothProgress, [0.4, 0.6], [0, 1]);
+  const mapScale = useTransform(smoothProgress, [0.4, 0.7], [0.85, 1]);
+  const mapWidth = useTransform(smoothProgress, [0.5, 0.8], ["60%", "100%"]);
+  const mapBorderRadius = useTransform(smoothProgress, [0.5, 0.8], ["24px", "0px"]);
 
   return (
     <div ref={setElement} className="relative h-[400vh] bg-[#f5f2ed]">
@@ -64,9 +66,9 @@ export default function HeroMap() {
               </h3>
               <h4 className="text-2xl md:text-3xl font-serif text-[#1a1a1a] mb-6">RedStone Flagship</h4>
               <p className="text-[#1a1a1a]/70 font-sans text-sm tracking-widest leading-relaxed mb-8 uppercase">
-                123 Royal Crown Avenue<br/>
-                Prestige District<br/>
-                London, UK
+                55-56, Street No. 1, U Block<br/>
+                DLF Phase 3, Sector 24<br/>
+                Gurugram, Haryana 122022
               </p>
               <div className="w-12 h-[1px] bg-[#C5A059] mx-auto"></div>
             </div>

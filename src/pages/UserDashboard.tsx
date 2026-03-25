@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
-import { collection, query, where, orderBy, onSnapshot, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { useAuth } from '../lib/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Calendar, Clock, CheckCircle2, XCircle, Scissors } from 'lucide-react';
+import { Calendar, Clock, CheckCircle2, XCircle, Scissors, RefreshCw, Star } from 'lucide-react';
+import { useCart, Service } from '../lib/CartContext';
+import BookingModal from '../components/BookingModal';
+import ReviewModal from '../components/ReviewModal';
 
 interface Booking {
   id: string;
@@ -20,37 +23,60 @@ interface Booking {
 
 export default function UserDashboard() {
   const { user, loading } = useAuth();
+  const { addToCart, clearCart } = useCart();
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [reviewMessage, setReviewMessage] = useState<string | null>(null);
+  const [availableServices, setAvailableServices] = useState<Service[]>([]);
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [reviewBooking, setReviewBooking] = useState<Booking | null>(null);
 
-  const handleCancel = async (bookingId: string) => {
-    if (!window.confirm('Are you sure you want to cancel this booking?')) return;
-    try {
-      await updateDoc(doc(db, 'bookings', bookingId), { status: 'cancelled' });
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `bookings/${bookingId}`);
-    }
+  const handleBookAgain = (booking: Booking) => {
+    clearCart();
+    booking.serviceIds.forEach(id => {
+      const service = availableServices.find(s => s.id === id);
+      if (service) {
+        addToCart(service);
+      }
+    });
+    setSelectedBooking(booking);
+    setIsBookingModalOpen(true);
   };
 
-  const handleReview = (bookingId: string) => {
-    setReviewMessage(`Thank you for your review for booking ${bookingId.slice(0, 5)}!`);
-    setTimeout(() => setReviewMessage(null), 5000);
-  };
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, 'services'));
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Service));
+        setAvailableServices(data);
+      } catch (error) {
+        console.error("Error fetching services for dashboard:", error);
+      }
+    };
+    fetchServices();
+  }, []);
 
   useEffect(() => {
     if (!user) return;
 
     const q = query(
       collection(db, 'bookings'),
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc')
+      where('userId', '==', user.uid)
     );
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Booking));
+      // Sort client-side to avoid index requirement
+      data.sort((a, b) => {
+        const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt);
+        const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt);
+        return dateB.getTime() - dateA.getTime();
+      });
       setBookings(data);
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'bookings');
+      try {
+        handleFirestoreError(error, OperationType.LIST, 'bookings');
+      } catch (e) { /* Logged by handleFirestoreError */ }
     });
 
     return () => unsubscribe();
@@ -90,16 +116,6 @@ export default function UserDashboard() {
           <p className="text-[#1a1a1a]/60 font-sans text-sm tracking-wide">{user.email}</p>
         </div>
       </div>
-
-      {reviewMessage && (
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8 p-4 bg-emerald-50 border border-emerald-100 text-emerald-600 text-sm font-sans text-center"
-        >
-          {reviewMessage}
-        </motion.div>
-      )}
 
       <div className="space-y-8">
         <h2 className="text-sm font-sans font-semibold tracking-[0.2em] uppercase text-[#C5A059] border-b border-[#1a1a1a]/10 pb-4 flex items-center gap-3">
@@ -142,29 +158,33 @@ export default function UserDashboard() {
 
                 <div className="flex flex-col items-end gap-4">
                   <div className="flex flex-wrap gap-2 justify-end">
-                    {booking.serviceIds.map((id, index) => (
-                      <span key={index} className="px-4 py-2 bg-[#1a1a1a]/5 text-[10px] text-[#1a1a1a]/60 border border-[#1a1a1a]/10 font-sans uppercase tracking-[0.2em]">
-                        Service #{index + 1}
-                      </span>
-                    ))}
+                    {booking.serviceIds.map((id, index) => {
+                      const serviceName = availableServices.find(s => s.id === id)?.name || `Service #${index + 1}`;
+                      return (
+                        <span key={index} className="px-4 py-2 bg-[#1a1a1a]/5 text-[10px] text-[#1a1a1a]/60 border border-[#1a1a1a]/10 font-sans uppercase tracking-[0.2em]">
+                          {serviceName}
+                        </span>
+                      );
+                    })}
                   </div>
-                  <div className="flex gap-4">
-                    {(booking.status === 'pending' || booking.status === 'confirmed') && (
-                      <button
-                        onClick={() => handleCancel(booking.id)}
-                        className="px-4 py-2 border border-red-200 text-red-600 text-[10px] font-sans uppercase tracking-[0.2em] hover:bg-red-50 transition-colors"
-                      >
-                        Cancel
-                      </button>
-                    )}
+                  <div className="flex items-center gap-2">
                     {booking.status === 'completed' && (
                       <button
-                        onClick={() => handleReview(booking.id)}
-                        className="px-4 py-2 bg-[#1a1a1a] text-white text-[10px] font-sans uppercase tracking-[0.2em] hover:bg-black transition-colors"
+                        onClick={() => {
+                          setReviewBooking(booking);
+                          setIsReviewModalOpen(true);
+                        }}
+                        className="flex items-center gap-2 px-6 py-3 bg-[#f5f2ed] text-[#C5A059] border border-[#C5A059]/30 text-[10px] font-sans font-semibold uppercase tracking-[0.2em] hover:bg-[#C5A059] hover:text-white transition-colors"
                       >
-                        Review
+                        <Star className="w-3 h-3" /> Leave a Review
                       </button>
                     )}
+                    <button
+                      onClick={() => handleBookAgain(booking)}
+                      className="flex items-center gap-2 px-6 py-3 bg-[#1a1a1a] text-white text-[10px] font-sans font-semibold uppercase tracking-[0.2em] hover:bg-black transition-colors"
+                    >
+                      <RefreshCw className="w-3 h-3" /> Book Again
+                    </button>
                   </div>
                 </div>
               </motion.div>
@@ -172,6 +192,25 @@ export default function UserDashboard() {
           </div>
         )}
       </div>
+
+      <BookingModal 
+        isOpen={isBookingModalOpen} 
+        onClose={() => {
+          setIsBookingModalOpen(false);
+          setSelectedBooking(null);
+        }}
+        initialCustomerName={selectedBooking?.customerName}
+        initialCustomerPhone={(selectedBooking as any)?.customerPhone}
+      />
+
+      <ReviewModal
+        isOpen={isReviewModalOpen}
+        onClose={() => {
+          setIsReviewModalOpen(false);
+          setReviewBooking(null);
+        }}
+        booking={reviewBooking}
+      />
     </div>
   );
 }

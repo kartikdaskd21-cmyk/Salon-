@@ -1,14 +1,43 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, getDocFromServer, doc } from 'firebase/firestore';
 import { getFunctions } from 'firebase/functions';
+import { getStorage } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
+console.log("Firebase initialized:", app.name);
 export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId);
+console.log("Firestore initialized:", db.type);
 export const auth = getAuth(app);
 export const functions = getFunctions(app);
+let storageInstance;
+try {
+  const bucket = firebaseConfig.storageBucket;
+  if (bucket) {
+    storageInstance = getStorage(app, bucket.startsWith('gs://') ? bucket : `gs://${bucket}`);
+  } else {
+    console.warn("Firebase Storage bucket is not defined in config.");
+    storageInstance = null;
+  }
+} catch (e) {
+  console.error("Firebase Storage initialization failed:", e);
+  storageInstance = null;
+}
+
+export const storage = storageInstance;
 export const googleProvider = new GoogleAuthProvider();
+
+async function testConnection() {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+  } catch (error) {
+    if(error instanceof Error && error.message.includes('the client is offline')) {
+      console.error("Please check your Firebase configuration. ");
+    }
+  }
+}
+testConnection().catch(err => console.warn("Initial connection test failed (this is usually fine):", err));
 
 export enum OperationType {
   CREATE = 'create',
